@@ -5,11 +5,24 @@ FROM node:20.11-slim AS builder
 WORKDIR /app
 
 COPY app/package.json app/package-lock.json ./
-RUN npm ci --omit=dev
 
-COPY app/ ./
+RUN npm ci --omit=dev \
+    && npm install --no-save --package-lock=false --omit=dev proxy-addr@2.0.8 \
+    && npm ls proxy-addr
+
+COPY app/src ./src
+COPY app/db ./db
 
 FROM node:20.11-slim
+
+# Install available operating-system security updates.
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+# The application starts with node directly and does not need npm.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
